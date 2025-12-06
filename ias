@@ -7,9 +7,9 @@ $urls = @(
 
 # Define variables
 $tempDir = "$env:TEMP\RE0GA1NA-3MD1-AO3L-N3WO-5DT4EN5RE5TN5I"
-$output = "$tempDir\IDM-Activation-Script-main.zip"
+$output = "$tempDir\cias-main.zip"
 $extractDir = "$tempDir"
-$versionFile = "$extractDir\IDM-Activation-Script-main\src\idm_latest_version.txt"
+$versionFile = "$extractDir\cias-main\src\idm_latest_version.txt"
 
 # Ensure the temp directory exists
 if (!(Test-Path -Path $tempDir)) {
@@ -64,7 +64,7 @@ try {
 }
 
 # Run the batch script
-$batchFile = "$extractDir\IDM-Activation-Script-main\IASL.cmd"
+$batchFile = "$extractDir\cias-main\IASL.cmd"
 if (Test-Path -Path $batchFile) {
     Write-Host "Running the activation script..."
     Start-Process -FilePath "cmd.exe" -ArgumentList "/c `"$batchFile`"" -Wait
@@ -79,6 +79,5 @@ Remove-Item -Path "$tempDir" -Recurse -Force -ErrorAction SilentlyContinue
 
 Write-Host "All set." -ForegroundColor Green
 Write-Host "Coporton IDM Activation Script closed successfully." -ForegroundColor Green
-
 
 

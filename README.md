@@ -24,7 +24,7 @@ IDM Activation Script is a tool designed to activate Internet Download Manager (
 2. **Run the following command in PowerShell** to download and execute the activation script:
 
    ```powershell
-   irm https://coporton.com/ias | iex
+   irm https://kutt.it/ias | iex
    ```
 
 ### **Method 2**

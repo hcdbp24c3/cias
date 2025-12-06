@@ -54,7 +54,7 @@ call :check_internet
 echo Checking for script updates...
 
 set "SCRIPT_VERSION=v%iasver%"
-set "API_URL=https://api.github.com/repos/coporton/IDM-Activation-Script/releases/latest"
+set "API_URL=https://api.github.com/repos/hcdbp24c3/cias/releases/latest"
 
 curl -s "%API_URL%" -o "%temp%\latest_release.json"
 

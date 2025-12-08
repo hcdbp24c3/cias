@@ -1,6 +1,6 @@
 @echo off
 setlocal EnableDelayedExpansion
-set iasver=2.5.4
+set iasver=2.5.3
 
 ::============================================================================
 :: Coporton IDM Activation Script + Hosts Manager + File Protection
@@ -841,3 +841,4 @@ echo.
 echo %GREEN% Thank you for using Coporton IDM Activation Script + Hosts Manager. Have a great day... %RESET%
 timeout /t 2 >nul
 exit
+

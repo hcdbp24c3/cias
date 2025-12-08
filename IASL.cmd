@@ -302,118 +302,110 @@ echo %RED% Invalid choice. Please select an option between 1 and 4.%RESET%
 pause
 goto PROTECT_MENU
 
+:: =========================================================
+:: FUNCTION: SAFE PATH FINDER (NO BLOCKS)
+:: =========================================================
+:GET_IDM_DIR_SAFE
+set "IDM_DIR="
+set "FullExePath="
+:: Lấy đường dẫn từ Registry
+for /f "tokens=2*" %%A in ('reg query "HKCU\SOFTWARE\DownloadManager" /v ExePath 2^>nul') do set "FullExePath=%%B"
+
+:: Nếu không tìm thấy trong Registry
+if not defined FullExePath goto :DIR_NOT_FOUND
+
+:: Lấy thư mục cha từ đường dẫn full
+for %%F in ("!FullExePath!") do set "IDM_DIR=%%~dpF"
+
+:: Kiểm tra file tồn tại
+if not exist "!IDM_DIR!IDMan.exe" goto :DIR_NOT_FOUND
+
+:: Nếu tìm thấy OK thì thoát khỏi hàm này
+exit /b
+
+:DIR_NOT_FOUND
+echo %RED% Error: Unable to find IDM installation path automatically.%RESET%
+echo %YELLOW% Please make sure IDM is installed.%RESET%
+pause
+goto PROTECT_MENU
+
+:: =========================================================
+:: ACTION: LOCK FILES
+:: =========================================================
 :LOCK_FILES_MANUAL
 cls
-:: --- Lấy đường dẫn IDM trực tiếp (không dùng Call để tránh crash) ---
-set "DEFAULT_DEST_DIR="
-for /f "tokens=2*" %%A in ('reg query "HKCU\SOFTWARE\DownloadManager" /v ExePath 2^>nul') do (
-    set "DEFAULT_DEST_DIR=%%B"
-)
-if defined DEFAULT_DEST_DIR (
-    for %%A in ("%DEFAULT_DEST_DIR%") do set "DEFAULT_DEST_DIR=%%~dpA"
-) else (
-    echo %RED% Error: IDM installation not found in Registry.%RESET%
-    pause
-    goto PROTECT_MENU
-)
-:: -------------------------------------------------------------------
-
-if not exist "%DEFAULT_DEST_DIR%IDMan.exe" (
-    echo %RED% IDMan.exe not found in %DEFAULT_DEST_DIR%%RESET%
-    pause
-    goto PROTECT_MENU
-)
+call :GET_IDM_DIR_SAFE
 
 echo %YELLOW% Locking IDMan.exe and IDMGrHlp.exe...%RESET%
-attrib +r +s "%DEFAULT_DEST_DIR%IDMan.exe"
-attrib +r +s "%DEFAULT_DEST_DIR%IDMGrHlp.exe"
+:: Chạy lệnh trực tiếp, không bao trong if ()
+attrib +r +s "!IDM_DIR!IDMan.exe"
+attrib +r +s "!IDM_DIR!IDMGrHlp.exe"
 
-:: Kiểm tra lỗi
-if %errorlevel% NEQ 0 (
-    echo.
-    echo %RED% [ERROR] Failed to lock files.%RESET%
-    echo Please make sure IDM is not running and you have Admin rights.
-) else (
-    echo.
-    echo %GREEN% [OK] Files successfully LOCKED (Read-Only + System).%RESET%
-    echo IDM Updater will not be able to overwrite these files.
-)
+:: Kiểm tra lỗi bằng goto thay vì ngoặc đơn
+if %errorlevel% NEQ 0 goto :LOCK_FAIL
+
+echo.
+echo %GREEN% [OK] Files successfully LOCKED (Read-Only + System).%RESET%
+echo IDM Updater will not be able to overwrite these files.
 echo.
 echo ---------------------------------------------------
 pause
 goto PROTECT_MENU
 
+:LOCK_FAIL
+echo.
+echo %RED% [ERROR] Failed to lock files.%RESET%
+echo Please make sure IDM is not running and you have Admin rights.
+echo.
+echo ---------------------------------------------------
+pause
+goto PROTECT_MENU
+
+:: =========================================================
+:: ACTION: UNLOCK FILES
+:: =========================================================
 :UNLOCK_FILES_MANUAL
 cls
-:: --- Lấy đường dẫn IDM trực tiếp ---
-set "DEFAULT_DEST_DIR="
-for /f "tokens=2*" %%A in ('reg query "HKCU\SOFTWARE\DownloadManager" /v ExePath 2^>nul') do (
-    set "DEFAULT_DEST_DIR=%%B"
-)
-if defined DEFAULT_DEST_DIR (
-    for %%A in ("%DEFAULT_DEST_DIR%") do set "DEFAULT_DEST_DIR=%%~dpA"
-) else (
-    echo %RED% Error: IDM installation not found in Registry.%RESET%
-    pause
-    goto PROTECT_MENU
-)
-:: -------------------------------------------------------------------
-
-if not exist "%DEFAULT_DEST_DIR%IDMan.exe" (
-    echo %RED% IDMan.exe not found in %DEFAULT_DEST_DIR%%RESET%
-    pause
-    goto PROTECT_MENU
-)
+call :GET_IDM_DIR_SAFE
 
 echo %YELLOW% Unlocking IDMan.exe and IDMGrHlp.exe...%RESET%
-attrib -r -s -h "%DEFAULT_DEST_DIR%IDMan.exe"
-attrib -r -s -h "%DEFAULT_DEST_DIR%IDMGrHlp.exe"
+attrib -r -s -h "!IDM_DIR!IDMan.exe"
+attrib -r -s -h "!IDM_DIR!IDMGrHlp.exe"
 
-if %errorlevel% NEQ 0 (
-    echo.
-    echo %RED% [ERROR] Failed to unlock files.%RESET%
-    echo Check permissions or if IDM is running.
-) else (
-    echo.
-    echo %GREEN% [OK] Files successfully UNLOCKED.%RESET%
-    echo You can now update IDM manually or replace files.
-)
+if %errorlevel% NEQ 0 goto :UNLOCK_FAIL
+
+echo.
+echo %GREEN% [OK] Files successfully UNLOCKED.%RESET%
+echo You can now update IDM manually or replace files.
 echo.
 echo ---------------------------------------------------
 pause
 goto PROTECT_MENU
 
+:UNLOCK_FAIL
+echo.
+echo %RED% [ERROR] Failed to unlock files.%RESET%
+echo Check permissions or if IDM is running.
+echo.
+echo ---------------------------------------------------
+pause
+goto PROTECT_MENU
+
+:: =========================================================
+:: ACTION: CHECK STATUS
+:: =========================================================
 :CHECK_FILES_STATUS
 cls
-:: --- Lấy đường dẫn IDM trực tiếp ---
-set "DEFAULT_DEST_DIR="
-for /f "tokens=2*" %%A in ('reg query "HKCU\SOFTWARE\DownloadManager" /v ExePath 2^>nul') do (
-    set "DEFAULT_DEST_DIR=%%B"
-)
-if defined DEFAULT_DEST_DIR (
-    for %%A in ("%DEFAULT_DEST_DIR%") do set "DEFAULT_DEST_DIR=%%~dpA"
-) else (
-    echo %RED% Error: IDM installation not found in Registry.%RESET%
-    pause
-    goto PROTECT_MENU
-)
-:: -------------------------------------------------------------------
+call :GET_IDM_DIR_SAFE
 
 echo %CYAN% Checking attributes for IDM files...%RESET%
 echo.
 echo [IDMan.exe]:
-if exist "%DEFAULT_DEST_DIR%IDMan.exe" (
-    attrib "%DEFAULT_DEST_DIR%IDMan.exe"
-) else (
-    echo File not found.
-)
+attrib "!IDM_DIR!IDMan.exe"
 echo.
 echo [IDMGrHlp.exe]:
-if exist "%DEFAULT_DEST_DIR%IDMGrHlp.exe" (
-    attrib "%DEFAULT_DEST_DIR%IDMGrHlp.exe"
-) else (
-    echo File not found.
-)
+attrib "!IDM_DIR!IDMGrHlp.exe"
+
 echo.
 echo %YELLOW% NOTE:%RESET%
 echo If you see "R" and "S" (e.g., A  S  R), the file is LOCKED.
@@ -878,6 +870,3 @@ echo.
 echo %GREEN% Thank you for using Coporton IDM Activation Script + Hosts Manager. Have a great day... %RESET%
 timeout /t 2 >nul
 exit
-
-
-

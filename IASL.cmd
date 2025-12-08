@@ -302,8 +302,9 @@ echo %RED% Invalid choice. Please select an option between 1 and 4.%RESET%
 pause
 goto PROTECT_MENU
 
-:GET_IDM_DIR
-:: Common subroutine to get IDM Directory
+:LOCK_FILES_MANUAL
+cls
+:: --- Lấy đường dẫn IDM trực tiếp (không dùng Call để tránh crash) ---
 set "DEFAULT_DEST_DIR="
 for /f "tokens=2*" %%A in ('reg query "HKCU\SOFTWARE\DownloadManager" /v ExePath 2^>nul') do (
     set "DEFAULT_DEST_DIR=%%B"
@@ -311,17 +312,12 @@ for /f "tokens=2*" %%A in ('reg query "HKCU\SOFTWARE\DownloadManager" /v ExePath
 if defined DEFAULT_DEST_DIR (
     for %%A in ("%DEFAULT_DEST_DIR%") do set "DEFAULT_DEST_DIR=%%~dpA"
 ) else (
-    echo %RED% Error: Unable to find IDM installation directory from Registry.%RESET%
-    echo %YELLOW% Please install IDM first.%RESET%
-    :: Quan trọng: Nếu lỗi thì pause rồi quay lại menu
-    pause 
+    echo %RED% Error: IDM installation not found in Registry.%RESET%
+    pause
     goto PROTECT_MENU
 )
-exit /b
+:: -------------------------------------------------------------------
 
-:LOCK_FILES_MANUAL
-cls
-call :GET_IDM_DIR
 if not exist "%DEFAULT_DEST_DIR%IDMan.exe" (
     echo %RED% IDMan.exe not found in %DEFAULT_DEST_DIR%%RESET%
     pause
@@ -331,13 +327,16 @@ if not exist "%DEFAULT_DEST_DIR%IDMan.exe" (
 echo %YELLOW% Locking IDMan.exe and IDMGrHlp.exe...%RESET%
 attrib +r +s "%DEFAULT_DEST_DIR%IDMan.exe"
 attrib +r +s "%DEFAULT_DEST_DIR%IDMGrHlp.exe"
-if errorlevel 0 (
+
+:: Kiểm tra lỗi
+if %errorlevel% NEQ 0 (
+    echo.
+    echo %RED% [ERROR] Failed to lock files.%RESET%
+    echo Please make sure IDM is not running and you have Admin rights.
+) else (
     echo.
     echo %GREEN% [OK] Files successfully LOCKED (Read-Only + System).%RESET%
     echo IDM Updater will not be able to overwrite these files.
-) else (
-    echo.
-    echo %RED% [ERROR] Failed to lock files. Check permissions.%RESET%
 )
 echo.
 echo ---------------------------------------------------
@@ -346,7 +345,20 @@ goto PROTECT_MENU
 
 :UNLOCK_FILES_MANUAL
 cls
-call :GET_IDM_DIR
+:: --- Lấy đường dẫn IDM trực tiếp ---
+set "DEFAULT_DEST_DIR="
+for /f "tokens=2*" %%A in ('reg query "HKCU\SOFTWARE\DownloadManager" /v ExePath 2^>nul') do (
+    set "DEFAULT_DEST_DIR=%%B"
+)
+if defined DEFAULT_DEST_DIR (
+    for %%A in ("%DEFAULT_DEST_DIR%") do set "DEFAULT_DEST_DIR=%%~dpA"
+) else (
+    echo %RED% Error: IDM installation not found in Registry.%RESET%
+    pause
+    goto PROTECT_MENU
+)
+:: -------------------------------------------------------------------
+
 if not exist "%DEFAULT_DEST_DIR%IDMan.exe" (
     echo %RED% IDMan.exe not found in %DEFAULT_DEST_DIR%%RESET%
     pause
@@ -356,13 +368,15 @@ if not exist "%DEFAULT_DEST_DIR%IDMan.exe" (
 echo %YELLOW% Unlocking IDMan.exe and IDMGrHlp.exe...%RESET%
 attrib -r -s -h "%DEFAULT_DEST_DIR%IDMan.exe"
 attrib -r -s -h "%DEFAULT_DEST_DIR%IDMGrHlp.exe"
-if errorlevel 0 (
+
+if %errorlevel% NEQ 0 (
+    echo.
+    echo %RED% [ERROR] Failed to unlock files.%RESET%
+    echo Check permissions or if IDM is running.
+) else (
     echo.
     echo %GREEN% [OK] Files successfully UNLOCKED.%RESET%
     echo You can now update IDM manually or replace files.
-) else (
-    echo.
-    echo %RED% [ERROR] Failed to unlock files. Check permissions.%RESET%
 )
 echo.
 echo ---------------------------------------------------
@@ -371,7 +385,20 @@ goto PROTECT_MENU
 
 :CHECK_FILES_STATUS
 cls
-call :GET_IDM_DIR
+:: --- Lấy đường dẫn IDM trực tiếp ---
+set "DEFAULT_DEST_DIR="
+for /f "tokens=2*" %%A in ('reg query "HKCU\SOFTWARE\DownloadManager" /v ExePath 2^>nul') do (
+    set "DEFAULT_DEST_DIR=%%B"
+)
+if defined DEFAULT_DEST_DIR (
+    for %%A in ("%DEFAULT_DEST_DIR%") do set "DEFAULT_DEST_DIR=%%~dpA"
+) else (
+    echo %RED% Error: IDM installation not found in Registry.%RESET%
+    pause
+    goto PROTECT_MENU
+)
+:: -------------------------------------------------------------------
+
 echo %CYAN% Checking attributes for IDM files...%RESET%
 echo.
 echo [IDMan.exe]:
@@ -851,5 +878,6 @@ echo.
 echo %GREEN% Thank you for using Coporton IDM Activation Script + Hosts Manager. Have a great day... %RESET%
 timeout /t 2 >nul
 exit
+
 
 

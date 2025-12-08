@@ -313,7 +313,8 @@ if defined DEFAULT_DEST_DIR (
 ) else (
     echo %RED% Error: Unable to find IDM installation directory from Registry.%RESET%
     echo %YELLOW% Please install IDM first.%RESET%
-    pause
+    :: Quan trọng: Nếu lỗi thì pause rồi quay lại menu
+    pause 
     goto PROTECT_MENU
 )
 exit /b
@@ -331,11 +332,15 @@ echo %YELLOW% Locking IDMan.exe and IDMGrHlp.exe...%RESET%
 attrib +r +s "%DEFAULT_DEST_DIR%IDMan.exe"
 attrib +r +s "%DEFAULT_DEST_DIR%IDMGrHlp.exe"
 if errorlevel 0 (
-    echo %GREEN% Files successfully LOCKED (Read-Only + System).%RESET%
+    echo.
+    echo %GREEN% [OK] Files successfully LOCKED (Read-Only + System).%RESET%
     echo IDM Updater will not be able to overwrite these files.
 ) else (
-    echo %RED% Failed to lock files. Check permissions.%RESET%
+    echo.
+    echo %RED% [ERROR] Failed to lock files. Check permissions.%RESET%
 )
+echo.
+echo ---------------------------------------------------
 pause
 goto PROTECT_MENU
 
@@ -352,11 +357,15 @@ echo %YELLOW% Unlocking IDMan.exe and IDMGrHlp.exe...%RESET%
 attrib -r -s -h "%DEFAULT_DEST_DIR%IDMan.exe"
 attrib -r -s -h "%DEFAULT_DEST_DIR%IDMGrHlp.exe"
 if errorlevel 0 (
-    echo %GREEN% Files successfully UNLOCKED.%RESET%
+    echo.
+    echo %GREEN% [OK] Files successfully UNLOCKED.%RESET%
     echo You can now update IDM manually or replace files.
 ) else (
-    echo %RED% Failed to unlock files. Check permissions.%RESET%
+    echo.
+    echo %RED% [ERROR] Failed to unlock files. Check permissions.%RESET%
 )
+echo.
+echo ---------------------------------------------------
 pause
 goto PROTECT_MENU
 
@@ -383,6 +392,7 @@ echo %YELLOW% NOTE:%RESET%
 echo If you see "R" and "S" (e.g., A  S  R), the file is LOCKED.
 echo If you only see "A" (e.g., A       ), the file is UNLOCKED.
 echo.
+echo ---------------------------------------------------
 pause
 goto PROTECT_MENU
 
@@ -841,4 +851,5 @@ echo.
 echo %GREEN% Thank you for using Coporton IDM Activation Script + Hosts Manager. Have a great day... %RESET%
 timeout /t 2 >nul
 exit
+
 

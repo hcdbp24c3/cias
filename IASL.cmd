@@ -1,14 +1,14 @@
 @echo off
 setlocal EnableDelayedExpansion
-set iasver=2.5.2
+set iasver=2.5.4
 
 ::============================================================================
-:: Coporton IDM Activation Script + Hosts Manager
-:: Merged by Gemini AI
+:: Coporton IDM Activation Script + Hosts Manager + File Protection
+:: Modified: Added Manual Lock/Unlock Menu
 ::============================================================================
 
 mode con: cols=120 lines=40
-title Coporton IDM Activation Script (Activator + Registry + Hosts) v%iasver%
+title Coporton IDM Activation Script (Activator + Registry + Hosts + Protection) v%iasver%
 
 :: Ensure Admin Privileges
 >nul 2>&1 "%SYSTEMROOT%\system32\cacls.exe" "%SYSTEMROOT%\system32\config\system"
@@ -246,19 +246,20 @@ timeout /t 1 >nul
 cls
 echo.
 echo %GREEN%  ======================================================
-echo %GREEN%    :                                                :
-echo %GREEN%    :  [1] Download Latest IDM Version               :
-echo %GREEN%    :  [2] Activate Internet Download Manager        :
-echo %GREEN%    :  [3] Extra FileTypes Extensions                :
-echo %GREEN%    :  [4] Do Everything (2 + 3)                     :
-echo %RED%    :  [5] Completely Remove IDM Registry Entries    :
-echo %CYAN%    :  [6] IDM Hosts Manager (Block/Unblock)         :
-echo %GREEN%    :  [7] Exit                                      :
-echo %GREEN%    :                                                :
+echo %GREEN%    :                                                  :
+echo %GREEN%    :  [1] Download Latest IDM Version                 :
+echo %GREEN%    :  [2] Activate Internet Download Manager          :
+echo %GREEN%    :  [3] Extra FileTypes Extensions                  :
+echo %GREEN%    :  [4] Do Everything (2 + 3)                       :
+echo %RED%    :  [5] Completely Remove IDM Registry Entries      :
+echo %CYAN%    :  [6] IDM Hosts Manager (Block/Unblock)           :
+echo %CYAN%    :  [7] IDM File Protection (Lock/Unlock)           :
+echo %GREEN%    :  [8] Exit                                        :
+echo %GREEN%    :                                                  :
 echo %GREEN%  ======================================================%RESET%
 echo.
 set "choice="
-set /p choice=" Choose an option (1-7): "
+set /p choice=" Choose an option (1-8): "
 if not defined choice goto :menu
 
 if "%choice%"=="1" call :DownloadLatestIDM & goto :menu
@@ -267,29 +268,140 @@ if "%choice%"=="3" call :AddExtensions & goto :menu
 if "%choice%"=="4" call :DoEverything & goto :menu
 if "%choice%"=="5" call :CleanRegistry & goto :menu
 if "%choice%"=="6" goto :HOSTS_MENU
-if "%choice%"=="7" call :quit
+if "%choice%"=="7" goto :PROTECT_MENU
+if "%choice%"=="8" call :quit
 
-echo %RED% Invalid option. Please enter a number from 1 to 7.%RESET%
+echo %RED% Invalid option. Please enter a number from 1 to 8.%RESET%
 timeout /t 2 >nul
 goto :menu
 
+::============================================================================
+:: FILE PROTECTION MENU (MANUAL LOCK/UNLOCK)
+::============================================================================
+:PROTECT_MENU
+cls
+echo.
+echo %CYAN% ================================================%RESET%
+echo %CYAN%            IDM FILE PROTECTION MANAGER %RESET%
+echo %CYAN% ================================================%RESET%
+echo.
+echo        [1] Lock Files (Protect from Update/Overwrite)
+echo        [2] Unlock Files (Allow Update/Modify)
+echo        [3] Check Current Status
+echo        [4] Back to Main Menu
+echo.
+echo %CYAN% ================================================%RESET%
+set /p pchoice=Choose an option (1-4): 
+
+if "%pchoice%"=="1" goto LOCK_FILES_MANUAL
+if "%pchoice%"=="2" goto UNLOCK_FILES_MANUAL
+if "%pchoice%"=="3" goto CHECK_FILES_STATUS
+if "%pchoice%"=="4" goto :menu
+
+echo %RED% Invalid choice. Please select an option between 1 and 4.%RESET%
+pause
+goto PROTECT_MENU
+
+:GET_IDM_DIR
+:: Common subroutine to get IDM Directory
+set "DEFAULT_DEST_DIR="
+for /f "tokens=2*" %%A in ('reg query "HKCU\SOFTWARE\DownloadManager" /v ExePath 2^>nul') do (
+    set "DEFAULT_DEST_DIR=%%B"
+)
+if defined DEFAULT_DEST_DIR (
+    for %%A in ("%DEFAULT_DEST_DIR%") do set "DEFAULT_DEST_DIR=%%~dpA"
+) else (
+    echo %RED% Error: Unable to find IDM installation directory from Registry.%RESET%
+    echo %YELLOW% Please install IDM first.%RESET%
+    pause
+    goto PROTECT_MENU
+)
+exit /b
+
+:LOCK_FILES_MANUAL
+cls
+call :GET_IDM_DIR
+if not exist "%DEFAULT_DEST_DIR%IDMan.exe" (
+    echo %RED% IDMan.exe not found in %DEFAULT_DEST_DIR%%RESET%
+    pause
+    goto PROTECT_MENU
+)
+
+echo %YELLOW% Locking IDMan.exe and IDMGrHlp.exe...%RESET%
+attrib +r +s "%DEFAULT_DEST_DIR%IDMan.exe"
+attrib +r +s "%DEFAULT_DEST_DIR%IDMGrHlp.exe"
+if errorlevel 0 (
+    echo %GREEN% Files successfully LOCKED (Read-Only + System).%RESET%
+    echo IDM Updater will not be able to overwrite these files.
+) else (
+    echo %RED% Failed to lock files. Check permissions.%RESET%
+)
+pause
+goto PROTECT_MENU
+
+:UNLOCK_FILES_MANUAL
+cls
+call :GET_IDM_DIR
+if not exist "%DEFAULT_DEST_DIR%IDMan.exe" (
+    echo %RED% IDMan.exe not found in %DEFAULT_DEST_DIR%%RESET%
+    pause
+    goto PROTECT_MENU
+)
+
+echo %YELLOW% Unlocking IDMan.exe and IDMGrHlp.exe...%RESET%
+attrib -r -s -h "%DEFAULT_DEST_DIR%IDMan.exe"
+attrib -r -s -h "%DEFAULT_DEST_DIR%IDMGrHlp.exe"
+if errorlevel 0 (
+    echo %GREEN% Files successfully UNLOCKED.%RESET%
+    echo You can now update IDM manually or replace files.
+) else (
+    echo %RED% Failed to unlock files. Check permissions.%RESET%
+)
+pause
+goto PROTECT_MENU
+
+:CHECK_FILES_STATUS
+cls
+call :GET_IDM_DIR
+echo %CYAN% Checking attributes for IDM files...%RESET%
+echo.
+echo [IDMan.exe]:
+if exist "%DEFAULT_DEST_DIR%IDMan.exe" (
+    attrib "%DEFAULT_DEST_DIR%IDMan.exe"
+) else (
+    echo File not found.
+)
+echo.
+echo [IDMGrHlp.exe]:
+if exist "%DEFAULT_DEST_DIR%IDMGrHlp.exe" (
+    attrib "%DEFAULT_DEST_DIR%IDMGrHlp.exe"
+) else (
+    echo File not found.
+)
+echo.
+echo %YELLOW% NOTE:%RESET%
+echo If you see "R" and "S" (e.g., A  S  R), the file is LOCKED.
+echo If you only see "A" (e.g., A       ), the file is UNLOCKED.
+echo.
+pause
+goto PROTECT_MENU
 
 ::============================================================================
-:: HOSTS MANAGER SECTION (Merged from Script A)
+:: HOSTS MANAGER SECTION
 ::============================================================================
 :HOSTS_MENU
 cls
 echo.
 echo %CYAN% ================================================%RESET%
-echo %CYAN%                IDM HOST MANAGER %RESET%
+echo %CYAN%                 IDM HOST MANAGER %RESET%
 echo %CYAN% ================================================%RESET%
 echo.
-echo       [1] Block IDM-related domains
-echo       [2] Unblock IDM-related domains
-echo       [3] Set file hosts to read-only
-echo       [4] Restore file hosts access to default
-echo       [5] Check if domains are blocked
-echo       [6] Back to Main Menu
+echo        [1] Block IDM-related domains
+echo        [2] Unblock IDM-related domains
+echo        [3] Set file hosts to read-only
+echo        [4] Restore file hosts access to default
+echo        [5] Check if domains are blocked
+echo        [6] Back to Main Menu
 echo.
 echo %CYAN% ================================================%RESET%
 set /p hchoice=Choose an option (1-6): 
@@ -299,7 +411,7 @@ if "%hchoice%"=="2" goto UNBLOCK_IDM
 if "%hchoice%"=="3" goto SET_READONLY
 if "%hchoice%"=="4" goto RESTORE_ACCESS
 if "%hchoice%"=="5" goto CHECK_BLOCKED
-if "%hchoice%"=="6" goto MENU
+if "%hchoice%"=="6" goto :menu
 
 echo %RED% Invalid choice. Please select an option between 1 and 6.%RESET%
 pause
@@ -568,8 +680,28 @@ call :verifyFile "%REGISTRY_FILE%" "registry.bin"
 call :verifyDestinationDirectory
 call :terminateProcess "IDMan.exe"
 regedit /s "%REGISTRY_FILE%"
-copy "%DATA_FILE%" "%DEFAULT_DEST_DIR%IDMan.exe" >nul
-copy "%DATAHLP_FILE%" "%DEFAULT_DEST_DIR%IDMGrHlp.exe" >nul
+
+:: === MODIFICATION START: Backup and Attribute Locking ===
+
+echo %YELLOW% Backing up original files (if not already backed up)...%RESET%
+if not exist "%DEFAULT_DEST_DIR%IDMan.exe.bak" copy "%DEFAULT_DEST_DIR%IDMan.exe" "%DEFAULT_DEST_DIR%IDMan.exe.bak" >nul
+if not exist "%DEFAULT_DEST_DIR%IDMGrHlp.exe.bak" copy "%DEFAULT_DEST_DIR%IDMGrHlp.exe" "%DEFAULT_DEST_DIR%IDMGrHlp.exe.bak" >nul
+
+echo %YELLOW% Unlocking files for modification...%RESET%
+:: Remove Read-Only/System attributes from destination (in case they were locked previously)
+attrib -r -s -h "%DEFAULT_DEST_DIR%IDMan.exe" >nul 2>&1
+attrib -r -s -h "%DEFAULT_DEST_DIR%IDMGrHlp.exe" >nul 2>&1
+
+echo %GREEN% Copying patched files...%RESET%
+copy /Y "%DATA_FILE%" "%DEFAULT_DEST_DIR%IDMan.exe" >nul
+copy /Y "%DATAHLP_FILE%" "%DEFAULT_DEST_DIR%IDMGrHlp.exe" >nul
+
+echo %YELLOW% Locking files (Read-Only) to prevent updates from reverting them...%RESET%
+:: Add Read-Only and System attributes to prevent modification
+attrib +r +s "%DEFAULT_DEST_DIR%IDMan.exe"
+attrib +r +s "%DEFAULT_DEST_DIR%IDMGrHlp.exe"
+
+:: === MODIFICATION END ===
 
 :: ——— PROMPT FOR USER INPUT ———
 echo.
@@ -585,7 +717,7 @@ if "%LName%"=="" set "LName=WorkStation"
 reg add "HKCU\SOFTWARE\DownloadManager" /v FName /t REG_SZ /d "%FName%" /f >nul
 reg add "HKCU\SOFTWARE\DownloadManager" /v LName /t REG_SZ /d "%LName%" /f >nul
 
-echo %GREEN% Internet Download Manager Activated.%RESET%
+echo %GREEN% Internet Download Manager Activated and Locked.%RESET%
 exit /b
 
 :verifyFile
@@ -622,6 +754,17 @@ exit /b
 
 call :terminateProcess "IDMan.exe"
 echo %YELLOW% Cleaning IDM-related Registry Entries...%RESET%
+echo %YELLOW% Unlocking files before cleaning...%RESET%
+
+:: Unlock files in case we need to delete/restore them later
+for /f "tokens=2*" %%A in ('reg query "HKCU\SOFTWARE\DownloadManager" /v ExePath 2^>nul') do (
+    set "DEFAULT_DEST_DIR=%%B"
+)
+if defined DEFAULT_DEST_DIR (
+    for %%A in ("%DEFAULT_DEST_DIR%") do set "DEFAULT_DEST_DIR=%%~dpA"
+    attrib -r -s -h "!DEFAULT_DEST_DIR!IDMan.exe" >nul 2>&1
+    attrib -r -s -h "!DEFAULT_DEST_DIR!IDMGrHlp.exe" >nul 2>&1
+)
 
 for %%k in (
     "HKLM\Software\Classes\CLSID\{7B8E9164-324D-4A2E-A46D-0165FB2000EC}"
